@@ -1,0 +1,68 @@
+---
+base_image: ubuntu:noble
+
+labels:
+  maintainer: "Maciej Rachuna <rachuna.maciej@gmail.com>"
+  image_source: "https://gitlab.com/pl.rachuna-net/containers/opentofu"
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  TF_IN_AUTOMATION: "true"
+  LANG: C.UTF-8
+
+before_build_commands:
+  ## install opentofu
+  - curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
+  - chmod +x install-opentofu.sh
+  ## terraform docs
+  - curl -sLo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.20.0/terraform-docs-v0.20.0-linux-amd64.tar.gz
+  - tar -xzf terraform-docs.tar.gz
+  - chmod +x terraform-docs
+  ## terraform lint
+  - curl -sLo ./tflint_linux_amd64.zip https://github.com/terraform-linters/tflint/releases/download/v0.58.1/tflint_linux_amd64.zip
+  - unzip tflint_linux_amd64.zip
+  - chmod +x tflint
+
+packages:
+  - bash
+  - curl
+  - git
+  - gnupg2
+  - jq
+  - libssl3
+  - lsb-release
+  - openssh-client
+  - ca-certificates
+  - gnupg
+  - snapd
+  - unzip
+
+custom_repos:
+
+extra_commands:
+  - chmod 777 /opt/scripts
+  - chmod 777 /opt/scripts/*
+  - /tmp/install-opentofu.sh --install-method standalone
+  - rm -fr /tmp/install-opentofu.sh
+  - tofu --version
+  - terraform-docs -v
+  - tflint --version
+
+copy:
+  - source: scripts/
+    destination: /opt/scripts/
+  - source: install-opentofu.sh
+    destination: /tmp/install-opentofu.sh
+  - source: terraform-docs
+    destination: /usr/local/bin/terraform-docs
+  - source: tflint
+    destination: /usr/local/bin/tflint
+
+user:
+  name: nonroot
+  shell: /bin/bash
+  home: /home/nonroot
+  chown: /opt/scripts/
+
+entrypoint: "/opt/scripts/entrypoint.bash"
+cmd: "/bin/bash"
